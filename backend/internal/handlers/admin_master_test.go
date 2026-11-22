@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"klinik/internal/database"
 	"klinik/internal/models"
@@ -82,6 +83,30 @@ func TestAdminPenutupanCRUD(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	w, out = doJSON(r, "GET", "/api/v1/admin/penutupan", nil, cookie)
 	require.Len(t, out["data"].([]any), 0)
+}
+
+// I-2: dokter/pasien dengan reservasi aktif tidak boleh dihapus (meninggalkan reservasi yatim).
+func TestDeleteDitolakSaatAdaReservasiAktif(t *testing.T) {
+	r, _, res, pasien := seedReservasiPasien(t, 3, nextWeekdayStr(t, time.Monday))
+	buatPetugas(t)
+	cookieAdmin := loginAs(t, r, "adm", "petugas123")
+
+	var jadwal models.Jadwal
+	require.NoError(t, database.DB.First(&jadwal, res.JadwalID).Error)
+
+	w, out := doJSON(r, "DELETE", fmt.Sprintf("/api/v1/admin/dokter/%d", jadwal.DokterID), nil, cookieAdmin)
+	require.Equal(t, http.StatusConflict, w.Code, w.Body.String())
+	assert.Contains(t, out["error"], "reservasi aktif")
+
+	w, out = doJSON(r, "DELETE", fmt.Sprintf("/api/v1/admin/pasien/%d", pasien.ID), nil, cookieAdmin)
+	require.Equal(t, http.StatusConflict, w.Code, w.Body.String())
+	assert.Contains(t, out["error"], "reservasi aktif")
+
+	// reservasi dibatalkan → hapus lolos
+	require.NoError(t, database.DB.Model(&models.Reservasi{}).Where("id = ?", res.ID).
+		Update("status", models.StatusBatal).Error)
+	w, _ = doJSON(r, "DELETE", fmt.Sprintf("/api/v1/admin/pasien/%d", pasien.ID), nil, cookieAdmin)
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestAdminPasienWalkIn(t *testing.T) {

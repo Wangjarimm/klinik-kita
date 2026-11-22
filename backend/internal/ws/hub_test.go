@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -55,4 +56,44 @@ func TestBroadcastRoomIsolation(t *testing.T) {
 	clientB.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
 	_, _, err := clientB.ReadMessage()
 	assert.Error(t, err, "room B tidak boleh menerima broadcast room A")
+}
+
+// I-1: broadcast bersamaan ke koneksi yang sama tidak boleh menjatuhkan pesan
+// (gorilla/websocket hanya mengizinkan satu penulis; tanpa serialisasi beberapa
+// write gagal dan subscriber hilang tanpa sadar).
+func TestBroadcastConcurrentTidakHilang(t *testing.T) {
+	hub := NewHub()
+	room := "antrean:9:2026-11-30"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hub.ServeAntrean(w, r, room, Snapshot{})
+	}))
+	defer srv.Close()
+
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL(srv)+"?room="+room, nil)
+	require.NoError(t, err)
+	defer conn.Close()
+	var awal Snapshot
+	require.NoError(t, conn.ReadJSON(&awal)) // snapshot awal
+
+	const N = 20
+	var wg sync.WaitGroup
+	for i := 0; i < N; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			hub.Broadcast(room, map[string]int{"n": i})
+		}(i)
+	}
+	wg.Wait()
+
+	terima := 0
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	for i := 0; i < N; i++ {
+		if _, _, err := conn.ReadMessage(); err == nil {
+			terima++
+		} else {
+			break
+		}
+	}
+	assert.Equal(t, N, terima, "semua broadcast bersamaan harus sampai ke subscriber")
 }

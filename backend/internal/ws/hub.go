@@ -31,31 +31,48 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+// koneksi pembungkus: gorilla/websocket hanya mengizinkan satu penulis pada satu
+// waktu, jadi setiap koneksi punya mutex tulis sendiri (I-1).
+type koneksi struct {
+	conn *websocket.Conn
+	wmu  sync.Mutex
+}
+
+func (k *koneksi) writeJSON(v any) error {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	k.wmu.Lock()
+	defer k.wmu.Unlock()
+	return k.conn.WriteMessage(websocket.TextMessage, data)
+}
+
 // Hub mengelola koneksi per room. Room antrean: "antrean:<dokter>:<tanggal>".
 // Room notifikasi: "user:<id>".
 type Hub struct {
 	mu    sync.RWMutex
-	rooms map[string]map[*websocket.Conn]struct{}
+	rooms map[string]map[*koneksi]struct{}
 }
 
 func NewHub() *Hub {
-	return &Hub{rooms: map[string]map[*websocket.Conn]struct{}{}}
+	return &Hub{rooms: map[string]map[*koneksi]struct{}{}}
 }
 
-func (h *Hub) Join(room string, conn *websocket.Conn) {
+func (h *Hub) Join(room string, k *koneksi) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.rooms[room] == nil {
-		h.rooms[room] = map[*websocket.Conn]struct{}{}
+		h.rooms[room] = map[*koneksi]struct{}{}
 	}
-	h.rooms[room][conn] = struct{}{}
+	h.rooms[room][k] = struct{}{}
 }
 
-func (h *Hub) Leave(room string, conn *websocket.Conn) {
+func (h *Hub) Leave(room string, k *koneksi) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if set, ok := h.rooms[room]; ok {
-		delete(set, conn)
+		delete(set, k)
 		if len(set) == 0 {
 			delete(h.rooms, room)
 		}
@@ -63,47 +80,33 @@ func (h *Hub) Leave(room string, conn *websocket.Conn) {
 }
 
 func (h *Hub) Broadcast(room string, payload any) {
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return
-	}
 	h.mu.RLock()
-	peers := make([]*websocket.Conn, 0, len(h.rooms[room]))
-	for conn := range h.rooms[room] {
-		peers = append(peers, conn)
+	peers := make([]*koneksi, 0, len(h.rooms[room]))
+	for k := range h.rooms[room] {
+		peers = append(peers, k)
 	}
 	h.mu.RUnlock()
 
-	for _, conn := range peers {
-		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+	for _, k := range peers {
+		if err := k.writeJSON(payload); err != nil {
 			log.Printf("ws write gagal: %v", err)
-			h.Leave(room, conn)
+			h.Leave(room, k)
+			_ = k.conn.Close()
 		}
 	}
 }
 
-// ServeAntrean upgrade + join room, lalu kirim snapshot awal. Blok sampai koneksi tutup.
-func (h *Hub) ServeAntrean(w http.ResponseWriter, r *http.Request, room string, awal Snapshot) {
-	h.serveRoom(w, r, room, func(conn *websocket.Conn) error {
-		return conn.WriteJSON(awal)
-	})
-}
-
-// ServeNotifikasi upgrade + join room user, tanpa pesan awal.
-func (h *Hub) ServeNotifikasi(w http.ResponseWriter, r *http.Request, room string) {
-	h.serveRoom(w, r, room, func(*websocket.Conn) error { return nil })
-}
-
-func (h *Hub) serveRoom(w http.ResponseWriter, r *http.Request, room string, onJoin func(*websocket.Conn) error) {
+func (h *Hub) serveRoom(w http.ResponseWriter, r *http.Request, room string, onJoin func(*koneksi) error) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
+	k := &koneksi{conn: conn}
 	defer conn.Close()
-	h.Join(room, conn)
-	defer h.Leave(room, conn)
+	h.Join(room, k)
+	defer h.Leave(room, k)
 
-	if err := onJoin(conn); err != nil {
+	if err := onJoin(k); err != nil {
 		return
 	}
 	for {
@@ -111,6 +114,18 @@ func (h *Hub) serveRoom(w http.ResponseWriter, r *http.Request, room string, onJ
 			return
 		}
 	}
+}
+
+// ServeAntrean upgrade + join room, lalu kirim snapshot awal. Blok sampai koneksi tutup.
+func (h *Hub) ServeAntrean(w http.ResponseWriter, r *http.Request, room string, awal Snapshot) {
+	h.serveRoom(w, r, room, func(k *koneksi) error {
+		return k.writeJSON(awal)
+	})
+}
+
+// ServeNotifikasi upgrade + join room user, tanpa pesan awal.
+func (h *Hub) ServeNotifikasi(w http.ResponseWriter, r *http.Request, room string) {
+	h.serveRoom(w, r, room, func(*koneksi) error { return nil })
 }
 
 func RoomUser(userID uint) string {

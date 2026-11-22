@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -107,6 +108,9 @@ func kirimNotifikasiStatus(r *models.Reservasi) {
 	pesan := "Reservasi " + r.Kode + " status: " + r.Status
 	if r.Status == models.StatusBatal && r.CatatanAdmin != "" {
 		pesan += " (" + r.CatatanAdmin + ")"
+	}
+	if r.Status == models.StatusDipanggil {
+		pesan = fmt.Sprintf("Nomor antrean %02d dipanggil, silakan masuk ke ruang praktik.", r.NomorAntrian)
 	}
 	hubWS.NotifyUser(*pasien.UserID, ws.NotifikasiMsg{
 		Judul: "Status Reservasi",

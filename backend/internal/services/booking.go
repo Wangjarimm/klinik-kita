@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"klinik/internal/models"
@@ -9,6 +10,10 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+func kompakt(tanggal string) string {
+	return strings.ReplaceAll(tanggal, "-", "")
+}
 
 type InputBooking struct {
 	JadwalID uint
@@ -87,8 +92,13 @@ func (s *BookingService) Create(db *gorm.DB, pasienID uint, in InputBooking) (*m
 			Status:           models.StatusMenunggu,
 			NomorAntrian:     int(hitung) + 1,
 		}
-		r.Kode = fmt.Sprintf("RSV-%s-%03d", in.Tanggal, r.NomorAntrian)
+		// Kode memakai ID global (unik selamanya): nomor antrean per dokter bisa
+		// berulang setelah batal, jadi tidak boleh jadi dasar keunikan kode.
 		if err := tx.Create(r).Error; err != nil {
+			return err
+		}
+		r.Kode = fmt.Sprintf("RSV-%s-%d", kompakt(in.Tanggal), r.ID)
+		if err := tx.Model(r).Update("kode", r.Kode).Error; err != nil {
 			return err
 		}
 		reservasi = r

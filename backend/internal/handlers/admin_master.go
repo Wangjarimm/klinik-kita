@@ -56,6 +56,17 @@ func AdminUpdateDokter(c *gin.Context) {
 }
 
 func AdminDeleteDokter(c *gin.Context) {
+	// Dokter dengan reservasi aktif tidak boleh dihapus (mencegah reservasi yatim).
+	var aktif int64
+	database.DB.Model(&models.Reservasi{}).
+		Joins("JOIN jadwals j ON j.id = reservasis.jadwal_id").
+		Where("j.dokter_id = ? AND reservasis.status <> ?", c.Param("id"), models.StatusBatal).
+		Count(&aktif)
+	if aktif > 0 {
+		c.JSON(http.StatusConflict, gin.H{"error": "Dokter masih memiliki reservasi aktif; batasi dulu reservasinya"})
+		return
+	}
+
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Delete(&models.Jadwal{}, "dokter_id = ?", c.Param("id")).Error; err != nil {
 			return err
@@ -212,7 +223,19 @@ func AdminUpdatePasien(c *gin.Context) {
 }
 
 func AdminDeletePasien(c *gin.Context) {
-	database.DB.Delete(&models.Pasien{}, c.Param("id"))
+	// Pasien dengan reservasi aktif tidak boleh dihapus.
+	var aktif int64
+	database.DB.Model(&models.Reservasi{}).
+		Where("pasien_id = ? AND status <> ?", c.Param("id"), models.StatusBatal).
+		Count(&aktif)
+	if aktif > 0 {
+		c.JSON(http.StatusConflict, gin.H{"error": "Pasien masih memiliki reservasi aktif; batasi dulu reservasinya"})
+		return
+	}
+	if err := database.DB.Delete(&models.Pasien{}, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Kesalahan server"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "Pasien dihapus"})
 }
 

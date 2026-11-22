@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"klinik/internal/database"
 	"klinik/internal/models"
 
 	"github.com/gorilla/websocket"
@@ -41,6 +42,36 @@ func TestNotifikasiPerUser(t *testing.T) {
 	assert.Equal(t, "notifikasi", msg["tipe"])
 	assert.Contains(t, msg["pesan"], res.Kode)
 	assert.Contains(t, msg["pesan"], models.StatusSelesai)
+}
+
+// M-4: pasien juga menerima notifikasi saat antreannya dipanggil (bukan hanya saat status diubah).
+func TestNotifikasiSaatPanggilBerikutnya(t *testing.T) {
+	r, cookiePasien, res, _ := seedReservasiPasien(t, 3, nextWeekdayStr(t, time.Monday))
+	buatPetugas(t)
+	cookieAdmin := loginAs(t, r, "adm", "petugas123")
+
+	srv := httptest.NewServer(r)
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws/notifikasi"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, http.Header{"Cookie": {
+		cookiePasien.Name + "=" + cookiePasien.Value,
+	}})
+	require.NoError(t, err)
+	defer conn.Close()
+
+	var jadwal models.Jadwal
+	require.NoError(t, database.DB.First(&jadwal, res.JadwalID).Error)
+
+	w, _ := doJSON(r, "POST", "/api/v1/admin/antrean/panggil",
+		map[string]any{"dokter_id": jadwal.DokterID, "tanggal": res.TanggalKunjungan}, cookieAdmin)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var msg map[string]any
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	require.NoError(t, conn.ReadJSON(&msg))
+	assert.Equal(t, "notifikasi", msg["tipe"])
+	assert.Contains(t, msg["pesan"], fmt.Sprintf("%02d", res.NomorAntrian))
 }
 
 func TestStatistikDanRiwayat(t *testing.T) {

@@ -61,6 +61,7 @@ func PanggilBerikutnya(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Kesalahan server"})
 		return
 	}
+	kirimNotifikasiStatus(r)
 	c.JSON(http.StatusOK, gin.H{"data": r})
 }
 
