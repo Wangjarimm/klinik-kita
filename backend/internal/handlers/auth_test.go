@@ -9,38 +9,17 @@ import (
 
 	"klinik/internal/database"
 	"klinik/internal/models"
+	"klinik/internal/testsupport"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-// setupTestDB memakai database klinikgo_test di MySQL compose (127.0.0.1:3307),
-// tanpa seeder: setiap test mengisi datanya sendiri.
+// setupTestDB memakai database klinikgo_test di MySQL compose, tanpa seeder.
 func setupTestDB(t *testing.T) {
 	t.Helper()
-	root, err := gorm.Open(mysql.Open("root:klinik@tcp(127.0.0.1:3307)/?parseTime=true"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	require.NoError(t, err)
-	require.NoError(t, root.Exec("CREATE DATABASE IF NOT EXISTS klinikgo_test").Error)
-
-	db, err := gorm.Open(mysql.Open("root:klinik@tcp(127.0.0.1:3307)/klinikgo_test?parseTime=true"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	require.NoError(t, err)
-	require.NoError(t, db.Migrator().DropTable(
-		&models.Reservasi{}, &models.Penutupan{}, &models.Jadwal{},
-		&models.Pasien{}, &models.Dokter{}, &models.User{},
-	))
-	require.NoError(t, db.AutoMigrate(
-		&models.User{}, &models.Pasien{}, &models.Dokter{},
-		&models.Jadwal{}, &models.Penutupan{}, &models.Reservasi{},
-	))
-	database.DB = db
+	testsupport.SetupTestDB(t)
 }
 
 func newTestRouter(t *testing.T) *gin.Engine {

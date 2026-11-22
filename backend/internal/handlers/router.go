@@ -26,6 +26,10 @@ func RegisterRoutes(r *gin.Engine, secret string) {
 	dokter.GET("/:id/jadwal", ListJadwalDokter)
 	dokter.GET("/:id/ketersediaan", KetersediaanDokter)
 
+	// Reservasi pasien (butuh role pasien).
+	pasienAPI := r.Group("/api/v1", middleware.AuthRequired(jwtSecret), middleware.RoleRequired(models.RolePasien))
+	pasienAPI.POST("/reservasi", BuatReservasi)
+
 	admin := r.Group("/api/v1/admin", middleware.AuthRequired(jwtSecret), middleware.RoleRequired(models.RolePetugas))
 	admin.POST("/dokter", AdminCreateDokter)
 	admin.GET("/dokter", AdminListDokter)

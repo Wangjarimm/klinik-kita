@@ -1,6 +1,7 @@
 package testsupport
 
 import (
+	"os"
 	"testing"
 
 	"klinik/internal/database"
@@ -12,16 +13,24 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// SetupTestDB memakai klinikgo_test di MySQL compose (127.0.0.1:3307), tanpa seeder.
+// TestRootDSN mengembalikan DSN root tanpa nama database (untuk CREATE DATABASE).
+func TestRootDSN() string {
+	if v := os.Getenv("TEST_DSN"); v != "" {
+		return v
+	}
+	return "root:klinik@tcp(127.0.0.1:3307)/"
+}
+
+// SetupTestDB memakai klinikgo_test di MySQL compose, tanpa seeder.
 func SetupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	root, err := gorm.Open(mysql.Open("root:klinik@tcp(127.0.0.1:3307)/?parseTime=true"), &gorm.Config{
+	root, err := gorm.Open(mysql.Open(TestRootDSN()+"?parseTime=true"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	require.NoError(t, err)
 	require.NoError(t, root.Exec("CREATE DATABASE IF NOT EXISTS klinikgo_test").Error)
 
-	db, err := gorm.Open(mysql.Open("root:klinik@tcp(127.0.0.1:3307)/klinikgo_test?parseTime=true"), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(TestRootDSN()+"klinikgo_test?parseTime=true"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	require.NoError(t, err)
