@@ -17,6 +17,7 @@ func main() {
 	if err := database.Connect(cfg.DBDSN); err != nil {
 		log.Fatal(err)
 	}
+	middleware.CookieSameSite = cfg.CookieSameSite
 
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery(), middleware.CORS(cfg.WebOrigin))
