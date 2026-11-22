@@ -1,1 +1,35 @@
 @import "tailwindcss";
+
+/*
+  Token dari DESIGN.md: teal #0F766E aksi, stone netral hangat, amber aksen status.
+  Radius skala 8/12/16; tanpa gradien dekoratif; bayangan hanya elemen mengambang.
+  Plus Jakarta Sans dimuat via next/font (alasan lisensi + karakter tenang, lihat DESIGN.md).
+*/
+:root {
+  --color-aksi: #0f766e;
+  --color-aksi-hover: #0d5f59;
+  --color-aksi-soft: #ecfdf7;
+  --color-bg: #fafaf9;
+  --color-surface: #ffffff;
+  --color-teks: #1c1917;
+  --color-teks-sec: #57534e;
+  --color-garis: #e7e5e4;
+  --color-amber: #b45309;
+  --color-amber-soft: #fef3e2;
+  --color-bahaya: #b91c1c;
+  --color-bahaya-soft: #fee2e2;
+  --radius-k: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-teks);
+}
+
+/* Fokus keyboard selalu terlihat (R-32) */
+:focus-visible {
+  outline: 2px solid var(--color-aksi);
+  outline-offset: 2px;
+}
