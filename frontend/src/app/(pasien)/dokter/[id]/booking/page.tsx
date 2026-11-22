@@ -1,18 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 import { apiFetch } from "@/lib/api";
-import type { Reservasi } from "@/lib/tipe";
-import { Input, Textarea } from "@/components/Input";
+import type { Dokter, Jadwal, Reservasi } from "@/lib/tipe";
+import { Textarea } from "@/components/Input";
 import { Tombol } from "@/components/Tombol";
 import { Kartu } from "@/components/Kartu";
+import { ErrorState, Memuat } from "@/components/EmptyState";
 import { tanggalIndo } from "@/lib/format";
 
 const schema = z.object({
@@ -20,12 +22,31 @@ const schema = z.object({
 });
 type FormNilai = z.infer<typeof schema>;
 
-// Ringkasan pilihan + form keluhan. Sukses: kode, nomor antrian, tombol invoice.
+// Ringkasan pilihan + form keluhan. Sukses: kode, nomor antrian, invoice.
 export default function Booking() {
+  return (
+    <Suspense fallback={<Memuat proses="Memuat formulir reservasi..." />}>
+      <BookingKonten />
+    </Suspense>
+  );
+}
+
+function BookingKonten() {
   const { id } = useParams<{ id: string }>();
   const params = useSearchParams();
   const router = useRouter();
   const tanggal = params.get("tanggal") ?? "";
+
+  const { data: detail, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["dokter-detail", id],
+    queryFn: () => apiFetch<{ data: { dokter: Dokter; jadwal: Jadwal[] } }>(`/dokter/${id}`),
+    enabled: !!id && !!tanggal,
+  });
+
+  // jadwal praktik yang cocok dengan hari kunjungan
+  const [y, m, d] = tanggal.split("-").map(Number);
+  const weekday = tanggal ? new Date(y, m - 1, d).getDay() : -1;
+  const jadwalCocok = detail?.data.jadwal.find((j) => j.hari === weekday);
 
   const {
     register,
@@ -37,7 +58,7 @@ export default function Booking() {
     mutationFn: (nilai: FormNilai) =>
       apiFetch<{ data: Reservasi }>("/reservasi", {
         method: "POST",
-        body: JSON.stringify({ jadwal_id: Number(id), tanggal, keluhan: nilai.keluhan }),
+        body: JSON.stringify({ jadwal_id: jadwalCocok!.id, tanggal, keluhan: nilai.keluhan }),
       }),
     onSuccess: (hasil) => {
       toast.success("Reservasi berhasil dibuat");
@@ -60,6 +81,23 @@ export default function Booking() {
     );
   }
 
+  if (isLoading) return <Memuat proses="Memuat jadwal dokter..." />;
+  if (isError) return <ErrorState pesan={(error as Error).message} onCobaLagi={() => refetch()} />;
+
+  if (!jadwalCocok) {
+    return (
+      <Kartu className="mx-auto max-w-md p-6 text-center">
+        <h1 className="text-lg font-semibold">Dokter tidak praktik pada tanggal tersebut</h1>
+        <p className="mt-2 text-sm text-[var(--color-teks-sec)]">
+          Pilih ulang tanggal di kalender pada hari praktik {detail?.data.dokter.nama}.
+        </p>
+        <Link href={`/dokter/${id}`}>
+          <Tombol className="mt-4">Pilih Tanggal</Tombol>
+        </Link>
+      </Kartu>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-md">
       <h1 className="text-2xl font-bold">Konfirmasi Reservasi</h1>
@@ -71,7 +109,15 @@ export default function Booking() {
           </div>
           <div className="flex justify-between">
             <dt className="text-[var(--color-teks-sec)]">Dokter</dt>
-            <dd className="font-semibold">ID dokter {id}</dd>
+            <dd className="font-semibold">
+              {detail?.data.dokter.nama} ({detail?.data.dokter.keahlian})
+            </dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-[var(--color-teks-sec)]">Jam praktik</dt>
+            <dd className="font-semibold">
+              {jadwalCocok.jam_mulai}-{jadwalCocok.jam_selesai}
+            </dd>
           </div>
         </dl>
         <form className="mt-5 space-y-4" onSubmit={handleSubmit((v) => mutasi.mutate(v))}>
