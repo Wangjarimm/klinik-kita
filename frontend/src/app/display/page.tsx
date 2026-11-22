@@ -50,9 +50,13 @@ function DisplayKonten() {
       </div>
       <div>
         <p className="text-xl text-stone-300">Sedang melayani</p>
-        <p className="text-[10rem] font-bold leading-none tabular-nums text-white">
-          {snap && snap.sedang_melayani > 0 ? String(snap.sedang_melayani).padStart(2, "0") : "--"}
-        </p>
+        {snap && snap.sedang_melayani > 0 ? (
+          <p className="text-[10rem] font-bold leading-none tabular-nums text-white">
+            {String(snap.sedang_melayani).padStart(2, "0")}
+          </p>
+        ) : (
+          <p className="text-5xl font-semibold leading-none text-stone-400">Belum mulai</p>
+        )}
       </div>
       <p className="text-2xl text-stone-300">
         Sisa menunggu: <span className="font-bold tabular-nums">{snap?.sisa_menunggu ?? "-"}</span>
