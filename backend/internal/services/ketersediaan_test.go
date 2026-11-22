@@ -24,7 +24,7 @@ func nextWeekday(t *testing.T, want time.Weekday, offsetWeek int) string {
 }
 
 func TestKetersediaanBulan(t *testing.T) {
-	db := testsupport.SetupTestDB(t)
+	db := testsupport.SetupTestDB(t, "services")
 
 	dokter := models.Dokter{NID: "D1", Nama: "dr. Senin", Keahlian: "Umum"}
 	require.NoError(t, db.Create(&dokter).Error)

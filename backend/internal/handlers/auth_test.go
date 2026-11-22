@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// setupTestDB memakai database klinikgo_test di MySQL compose, tanpa seeder.
+// setupTestDB memakai database test khusus paket handlers, tanpa seeder.
 func setupTestDB(t *testing.T) {
 	t.Helper()
-	testsupport.SetupTestDB(t)
+	testsupport.SetupTestDB(t, "handlers")
 }
 
 func newTestRouter(t *testing.T) *gin.Engine {

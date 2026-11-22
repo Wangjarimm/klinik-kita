@@ -21,16 +21,18 @@ func TestRootDSN() string {
 	return "root:klinik@tcp(127.0.0.1:3307)/"
 }
 
-// SetupTestDB memakai klinikgo_test di MySQL compose, tanpa seeder.
-func SetupTestDB(t *testing.T) *gorm.DB {
+// SetupTestDB memakai database klinikgo_test_<name> di MySQL compose, tanpa seeder.
+// Nama per paket mencegah tabrakan saat go test ./... menjalankan paket paralel.
+func SetupTestDB(t *testing.T, name string) *gorm.DB {
 	t.Helper()
+	dbName := "klinikgo_test_" + name
 	root, err := gorm.Open(mysql.Open(TestRootDSN()+"?parseTime=true"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	require.NoError(t, err)
-	require.NoError(t, root.Exec("CREATE DATABASE IF NOT EXISTS klinikgo_test").Error)
+	require.NoError(t, root.Exec("CREATE DATABASE IF NOT EXISTS " + dbName).Error)
 
-	db, err := gorm.Open(mysql.Open(TestRootDSN()+"klinikgo_test?parseTime=true"), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(TestRootDSN()+dbName+"?parseTime=true"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	require.NoError(t, err)

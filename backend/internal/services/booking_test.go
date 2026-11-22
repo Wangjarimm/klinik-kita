@@ -16,7 +16,7 @@ import (
 
 func seedBookingFixture(t *testing.T, kuota int) (*gorm.DB, models.Jadwal, string) {
 	t.Helper()
-	db := testsupport.SetupTestDB(t)
+	db := testsupport.SetupTestDB(t, "services")
 	dokter := models.Dokter{NID: "D1", Nama: "dr. Senin", Keahlian: "Umum"}
 	require.NoError(t, db.Create(&dokter).Error)
 	jadwal := models.Jadwal{DokterID: dokter.ID, Hari: 1, JamMulai: "08:00", JamSelesai: "12:00", Kuota: kuota}
