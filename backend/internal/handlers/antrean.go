@@ -99,6 +99,7 @@ func UbahStatusReservasi(c *gin.Context) {
 	if database.DB.First(&j, r.JadwalID).Error == nil {
 		antreanSvc.BroadcastSnapshot(database.DB, j.DokterID, r.TanggalKunjungan)
 	}
+	kirimNotifikasiStatus(&r)
 	c.JSON(http.StatusOK, gin.H{"data": r})
 }
 

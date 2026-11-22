@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -83,6 +84,17 @@ func (h *Hub) Broadcast(room string, payload any) {
 
 // ServeAntrean upgrade + join room, lalu kirim snapshot awal. Blok sampai koneksi tutup.
 func (h *Hub) ServeAntrean(w http.ResponseWriter, r *http.Request, room string, awal Snapshot) {
+	h.serveRoom(w, r, room, func(conn *websocket.Conn) error {
+		return conn.WriteJSON(awal)
+	})
+}
+
+// ServeNotifikasi upgrade + join room user, tanpa pesan awal.
+func (h *Hub) ServeNotifikasi(w http.ResponseWriter, r *http.Request, room string) {
+	h.serveRoom(w, r, room, func(*websocket.Conn) error { return nil })
+}
+
+func (h *Hub) serveRoom(w http.ResponseWriter, r *http.Request, room string, onJoin func(*websocket.Conn) error) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
@@ -91,7 +103,7 @@ func (h *Hub) ServeAntrean(w http.ResponseWriter, r *http.Request, room string, 
 	h.Join(room, conn)
 	defer h.Leave(room, conn)
 
-	if err := conn.WriteJSON(awal); err != nil {
+	if err := onJoin(conn); err != nil {
 		return
 	}
 	for {
@@ -99,4 +111,18 @@ func (h *Hub) ServeAntrean(w http.ResponseWriter, r *http.Request, room string, 
 			return
 		}
 	}
+}
+
+func RoomUser(userID uint) string {
+	return "user:" + strconv.FormatUint(uint64(userID), 10)
+}
+
+// NotifyUser mengirim pesan ke semua koneksi milik satu user.
+func (h *Hub) NotifyUser(userID uint, msg NotifikasiMsg) {
+	h.Broadcast(RoomUser(userID), map[string]any{
+		"tipe":  "notifikasi",
+		"judul": msg.Judul,
+		"pesan": msg.Pesan,
+		"label": msg.Tipe,
+	})
 }

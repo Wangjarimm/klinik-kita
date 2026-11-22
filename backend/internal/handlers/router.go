@@ -25,6 +25,7 @@ func RegisterRoutes(r *gin.Engine, secret string) {
 
 	// Antrean live: WS publik read-only; endpoint pengubahan di belakang role.
 	r.GET("/ws/antrean", WSAntrean)
+	r.GET("/ws/notifikasi", middleware.AuthRequired(jwtSecret), WSNotifikasi)
 
 	auth := r.Group("/api/v1/auth")
 	auth.POST("/register", Register)
@@ -64,6 +65,8 @@ func RegisterRoutes(r *gin.Engine, secret string) {
 	admin.DELETE("/penutupan/:id", AdminDeletePenutupan)
 	admin.POST("/pasien", AdminCreatePasien)
 	admin.GET("/pasien", AdminListPasien)
+	admin.GET("/statistik", StatistikAdmin)
+	admin.GET("/pasien/:id/riwayat", RiwayatPasien)
 	admin.PUT("/pasien/:id", AdminUpdatePasien)
 	admin.DELETE("/pasien/:id", AdminDeletePasien)
 }
