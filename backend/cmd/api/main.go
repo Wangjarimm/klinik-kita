@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"klinik/internal/config"
+	"klinik/internal/database"
 	"klinik/internal/handlers"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,10 @@ import (
 
 func main() {
 	cfg := config.Load()
+
+	if err := database.Connect(cfg.DBDSN); err != nil {
+		log.Fatal(err)
+	}
 
 	r := gin.Default()
 
