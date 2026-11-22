@@ -68,4 +68,7 @@ const (
 	StatusDipanggil    = "dipanggil"
 	StatusSelesai      = "selesai"
 	StatusBatal        = "batal"
+
+	RolePasien  = "pasien"
+	RolePetugas = "petugas"
 )

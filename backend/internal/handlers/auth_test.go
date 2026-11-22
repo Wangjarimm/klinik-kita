@@ -23,23 +23,23 @@ import (
 func setupTestDB(t *testing.T) {
 	t.Helper()
 	root, err := gorm.Open(mysql.Open("root:klinik@tcp(127.0.0.1:3307)/?parseTime=true"), &gorm.Config{
-		Logger: logger.Default(logger.LogLevel(1)),
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	require.NoError(t, err)
 	require.NoError(t, root.Exec("CREATE DATABASE IF NOT EXISTS klinikgo_test").Error)
 
 	db, err := gorm.Open(mysql.Open("root:klinik@tcp(127.0.0.1:3307)/klinikgo_test?parseTime=true"), &gorm.Config{
-		Logger: logger.Default(logger.LogLevel(1)),
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	require.NoError(t, err)
 	require.NoError(t, db.Migrator().DropTable(
 		&models.Reservasi{}, &models.Penutupan{}, &models.Jadwal{},
 		&models.Pasien{}, &models.Dokter{}, &models.User{},
-	).Error)
+	))
 	require.NoError(t, db.AutoMigrate(
 		&models.User{}, &models.Pasien{}, &models.Dokter{},
 		&models.Jadwal{}, &models.Penutupan{}, &models.Reservasi{},
-	).Error)
+	))
 	database.DB = db
 }
 

@@ -6,6 +6,7 @@ import (
 	"klinik/internal/config"
 	"klinik/internal/database"
 	"klinik/internal/handlers"
+	"klinik/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,10 +18,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	r := gin.Default()
-
-	api := r.Group("/api/v1")
-	api.GET("/health", handlers.Health)
+	r := gin.New()
+	r.Use(gin.Logger(), gin.Recovery(), middleware.CORS(cfg.WebOrigin))
+	_ = r.SetTrustedProxies(nil)
+	handlers.RegisterRoutes(r, cfg.JWTSecret)
 
 	log.Printf("api listening on :%s", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {
