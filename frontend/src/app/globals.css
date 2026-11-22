@@ -33,3 +33,35 @@ body {
   outline: 2px solid var(--color-aksi);
   outline-offset: 2px;
 }
+
+/* Tombol utilitas untuk landing (DESIGN.md: aksi teal, sekunder outline) */
+.btn-primary,
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-k);
+  border: 1px solid var(--color-garis);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-primary {
+  background: var(--color-aksi);
+  border-color: var(--color-aksi);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--color-aksi-hover);
+}
+.btn-outline {
+  background: var(--color-surface);
+  color: var(--color-teks);
+}
+.btn-outline:hover {
+  background: var(--color-aksi-soft);
+  border-color: var(--color-aksi);
+}
