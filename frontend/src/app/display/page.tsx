@@ -2,6 +2,9 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import type { Dokter } from "@/lib/tipe";
 import { useAntrean } from "@/lib/useAntrean";
 
 // Layar antrian fullscreen untuk TV klinik: nomor sedang melayani, sisa menunggu.
@@ -19,6 +22,11 @@ function DisplayKonten() {
   const dokterID = Number(params.get("dokter") ?? 0);
   const tanggal = params.get("tanggal") ?? "";
   const { snap, terputus } = useAntrean(dokterID, tanggal, dokterID > 0 && tanggal !== "");
+  const { data: detail } = useQuery({
+    queryKey: ["dokter-detail", dokterID],
+    queryFn: () => apiFetch<{ data: { dokter: Dokter } }>(`/dokter/${dokterID}`),
+    enabled: dokterID > 0,
+  });
 
   if (!dokterID || !tanggal) {
     return (
@@ -37,7 +45,7 @@ function DisplayKonten() {
       <div>
         <p className="text-lg font-semibold text-stone-300">Klinik Kita</p>
         <p className="text-sm text-stone-400">
-          Dokter ID {dokterID} · {tanggal}
+          {detail?.data.dokter.nama ?? "Dokter"} · {tanggal}
         </p>
       </div>
       <div>
