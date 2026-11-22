@@ -24,6 +24,7 @@ func RegisterRoutes(r *gin.Engine, secret string) {
 	dokter.GET("", ListDokter)
 	dokter.GET("/:id", DetailDokter)
 	dokter.GET("/:id/jadwal", ListJadwalDokter)
+	dokter.GET("/:id/ketersediaan", KetersediaanDokter)
 
 	admin := r.Group("/api/v1/admin", middleware.AuthRequired(jwtSecret), middleware.RoleRequired(models.RolePetugas))
 	admin.POST("/dokter", AdminCreateDokter)
