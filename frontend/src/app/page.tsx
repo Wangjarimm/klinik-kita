@@ -46,7 +46,7 @@ export default function Landing() {
       <main className="mx-auto max-w-5xl px-4 pb-16">
         <section className="py-14">
           <h1 className="max-w-xl text-3xl font-bold leading-tight">
-            Reservasi dokter, nomor antrian Anda sudah menunggu di tangan.
+            Pesan jadwal dokter, dapatkan nomor antrian Anda langsung.
           </h1>
           <p className="mt-3 max-w-xl text-[var(--color-teks-sec)]">
             Pilih dokter, pilih tanggal di kalender, dan dapatkan nomor antrian Anda. Sisa slot
