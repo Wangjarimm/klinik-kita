@@ -32,6 +32,10 @@ func RegisterRoutes(r *gin.Engine, secret string) {
 	pasienAPI.GET("/reservasi/saya", ReservasiSaya)
 	pasienAPI.PATCH("/reservasi/:id/batal", BatalReservasi)
 
+	// Invoice: pemilik reservasi (pasien) atau petugas.
+	authed := r.Group("/api/v1", middleware.AuthRequired(jwtSecret))
+	authed.GET("/reservasi/invoice/:id", InvoiceReservasi)
+
 	admin := r.Group("/api/v1/admin", middleware.AuthRequired(jwtSecret), middleware.RoleRequired(models.RolePetugas))
 	admin.POST("/dokter", AdminCreateDokter)
 	admin.GET("/dokter", AdminListDokter)

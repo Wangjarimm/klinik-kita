@@ -31,7 +31,7 @@ func newTestRouter(t *testing.T) *gin.Engine {
 	return r
 }
 
-func doJSON(r *gin.Engine, method, path string, body any, cookies ...*http.Cookie) (*httptest.ResponseRecorder, map[string]any) {
+func doRaw(r *gin.Engine, method, path string, body any, cookies ...*http.Cookie) *httptest.ResponseRecorder {
 	var buf bytes.Buffer
 	if body != nil {
 		_ = json.NewEncoder(&buf).Encode(body)
@@ -43,7 +43,11 @@ func doJSON(r *gin.Engine, method, path string, body any, cookies ...*http.Cooki
 	}
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
+	return w
+}
 
+func doJSON(r *gin.Engine, method, path string, body any, cookies ...*http.Cookie) (*httptest.ResponseRecorder, map[string]any) {
+	w := doRaw(r, method, path, body, cookies...)
 	var out map[string]any
 	if w.Body.Len() > 0 {
 		_ = json.Unmarshal(w.Body.Bytes(), &out)
