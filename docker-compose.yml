@@ -1,0 +1,38 @@
+services:
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-klinik}
+      MYSQL_DATABASE: klinikgo
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-klinik}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: ./backend
+    environment:
+      PORT: "8080"
+      DB_DSN: "root:${DB_PASSWORD:-klinik}@tcp(db:3306)/klinikgo?parseTime=true"
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-ganti-di-prod}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:
