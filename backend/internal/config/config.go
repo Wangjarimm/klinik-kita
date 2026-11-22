@@ -46,8 +46,14 @@ func dsnDariURL(raw string) string {
 		port = "3306"
 	}
 	pass, _ := parsed.User.Password()
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&multiStatements=true",
-		parsed.User.Username(), pass, parsed.Hostname(), port, strings.TrimPrefix(parsed.Path, "/"))
+	tambahan := "parseTime=true&multiStatements=true"
+	// Aiven/TiDB mewajibkan TLS dan menandainya lewat ssl-mode/ssl_mode di URL.
+	q := strings.ToLower(parsed.RawQuery)
+	if strings.Contains(q, "ssl-mode") || strings.Contains(q, "ssl_mode") {
+		tambahan += "&tls=true"
+	}
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?%s",
+		parsed.User.Username(), pass, parsed.Hostname(), port, strings.TrimPrefix(parsed.Path, "/"), tambahan)
 }
 
 func env(key, def string) string {
