@@ -98,12 +98,12 @@ export function Kalender({
                 return (
                   <button
                     key={h.tanggal}
-                    disabled={!bisa}
+                    aria-disabled={!bisa}
                     onClick={() => pilih(h.tanggal, h.status, h.alasan, h.sisa)}
                     title={h.alasan || (bisa ? `${h.sisa} slot tersisa` : undefined)}
                     className={`min-h-[44px] rounded-[var(--radius-k)] text-sm font-semibold transition-colors ${GAYA[h.status]} ${
                       terpilih === h.tanggal ? "ring-2 ring-[var(--color-aksi)]" : ""
-                    }`}
+                    } ${bisa ? "cursor-pointer" : "cursor-not-allowed"}`}
                   >
                     {nomor}
                     {bisa && <span className="block text-[10px] font-normal">sisa {h.sisa}</span>}
