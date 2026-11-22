@@ -80,6 +80,8 @@ func RoleRequired(role string) gin.HandlerFunc {
 
 func CORS(origin string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Data kuota/antrean tidak boleh disimpan cache browser.
+		c.Header("Cache-Control", "no-store")
 		if c.GetHeader("Origin") == origin {
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Access-Control-Allow-Credentials", "true")
