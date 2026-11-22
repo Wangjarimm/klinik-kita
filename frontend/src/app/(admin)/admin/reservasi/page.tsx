@@ -105,7 +105,7 @@ export default function AdminReservasi() {
       <h1 className="text-2xl font-bold">Reservasi & Antrean</h1>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <Select label="Tanggal" value={tanggal} onChange={(e) => setTanggal(e.target.value)}>
+        <Select label="Tanggal" name="tanggal" value={tanggal} onChange={(e) => setTanggal(e.target.value)}>
           {[...Array(14)].map((_, i) => {
             const t = new Date(Date.now() + 7 * 3600_000);
             t.setDate(t.getDate() + i);
@@ -117,7 +117,7 @@ export default function AdminReservasi() {
             );
           })}
         </Select>
-        <Select label="Dokter" value={dokterID} onChange={(e) => setDokterID(e.target.value)}>
+        <Select label="Dokter" name="dokter" value={dokterID} onChange={(e) => setDokterID(e.target.value)}>
           <option value="">Semua dokter</option>
           {dokterData?.data.map((d) => (
             <option key={d.id} value={d.id}>
@@ -125,7 +125,7 @@ export default function AdminReservasi() {
             </option>
           ))}
         </Select>
-        <Select label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
+        <Select label="Status" name="status" value={status} onChange={(e) => setStatus(e.target.value)}>
           {SEMUA_STATUS.map((s) => (
             <option key={s} value={s}>
               {s === "" ? "Semua status" : LABEL_STATUS[s]}

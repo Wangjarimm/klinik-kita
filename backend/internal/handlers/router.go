@@ -14,6 +14,8 @@ var jwtSecret []byte
 func RegisterRoutes(r *gin.Engine, secret string) {
 	jwtSecret = []byte(secret)
 
+	r.GET("/api/v1/health", Health)
+
 	// Hubungkan hook broadcast antrean (booking baru, pembatalan).
 	onCreatedReservasi = func(res *models.Reservasi) {
 		var j models.Jadwal
@@ -66,6 +68,7 @@ func RegisterRoutes(r *gin.Engine, secret string) {
 	admin.POST("/pasien", AdminCreatePasien)
 	admin.GET("/pasien", AdminListPasien)
 	admin.GET("/statistik", StatistikAdmin)
+	admin.GET("/reservasi", AdminListReservasi)
 	admin.GET("/pasien/:id/riwayat", RiwayatPasien)
 	admin.PUT("/pasien/:id", AdminUpdatePasien)
 	admin.DELETE("/pasien/:id", AdminDeletePasien)
