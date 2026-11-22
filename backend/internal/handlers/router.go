@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"klinik/internal/database"
 	"klinik/internal/middleware"
 	"klinik/internal/models"
 
@@ -12,6 +13,18 @@ var jwtSecret []byte
 // RegisterRoutes memasang seluruh endpoint /api/v1. secret dipakai JWT.
 func RegisterRoutes(r *gin.Engine, secret string) {
 	jwtSecret = []byte(secret)
+
+	// Hubungkan hook broadcast antrean (booking baru, pembatalan).
+	onCreatedReservasi = func(res *models.Reservasi) {
+		var j models.Jadwal
+		if database.DB.First(&j, res.JadwalID).Error == nil {
+			broadcastAntrean(j.DokterID, res.TanggalKunjungan)
+		}
+	}
+	hookAntreanChange = broadcastAntrean
+
+	// Antrean live: WS publik read-only; endpoint pengubahan di belakang role.
+	r.GET("/ws/antrean", WSAntrean)
 
 	auth := r.Group("/api/v1/auth")
 	auth.POST("/register", Register)
@@ -44,6 +57,8 @@ func RegisterRoutes(r *gin.Engine, secret string) {
 	admin.POST("/dokter/:id/jadwal", AdminCreateJadwal)
 	admin.PUT("/jadwal/:id", AdminUpdateJadwal)
 	admin.DELETE("/jadwal/:id", AdminDeleteJadwal)
+	admin.POST("/antrean/panggil", PanggilBerikutnya)
+	admin.PATCH("/reservasi/:id/status", UbahStatusReservasi)
 	admin.POST("/penutupan", AdminCreatePenutupan)
 	admin.GET("/penutupan", AdminListPenutupan)
 	admin.DELETE("/penutupan/:id", AdminDeletePenutupan)
